@@ -1,13 +1,15 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <functional>
 
-namespace fs = boost::filesystem;
-using json = nlohmann::json;
+// namespace fs = boost::filesystem;
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    socketThread = Q_NULLPTR;
     ui->setupUi(this);
     timer = new QTimer(this);;
     if( !face_cascade.load( face_cascade_name ) ){
@@ -17,8 +19,9 @@ MainWindow::MainWindow(QWidget *parent) :
         printf("--(!)Error loading eyes cascade\n"); ; };
 
 
-
     connect(timer, SIGNAL(timeout()), this, SLOT(readFrame()));
+    // connect(timer, SIGNAL(timeout()), this, SLOT(updateLabel()));
+
 }
 
 MainWindow::~MainWindow()
@@ -27,8 +30,7 @@ MainWindow::~MainWindow()
 }
 
 
-
-QImage MainWindow::open_img(int flag)
+ QImage MainWindow::open_img(int flag)
 {
     QString filename = QFileDialog::getOpenFileName(this,tr("Open Image"),"",tr("Image File(*.bmp *.jpg *.jpeg *.png)"));
     QTextCodec *code = QTextCodec::codecForName("gb18030");
@@ -44,6 +46,8 @@ QImage MainWindow::open_img(int flag)
   }
 
 }
+
+
 void MainWindow::on_pushButton_clicked()
 {
     QImage img = open_img(0);
@@ -77,6 +81,7 @@ void MainWindow::on_pushButton_2_clicked()
     ui->label_2->setPixmap(QPixmap::fromImage(img));
 }
 
+/*
 string MainWindow::saveImageQ(const QPixmap *pmap){
     boost::uuids::random_generator generator;
     boost::uuids::uuid uuid = generator();
@@ -90,13 +95,15 @@ string MainWindow::saveImageQ(const QPixmap *pmap){
         boost::filesystem::create_directories( image_path, returnedError );
     }
     fs::path img_path = image_path / fs::path(ss.str());
-    QFile image(QString::fromStdString(img_path.string()));
+    QFile image(QString::fromStdString(img_path.string()));// /home/wenfahu/new_face/facenet/trained_models/20170216-091149.zip
+
     image.open(QIODevice::WriteOnly);
     pmap->save(&image, "PNG");
     return img_path.string();
 }
 
 string MainWindow::saveImageOCV(Mat img){
+    return "";
     boost::uuids::random_generator generator;
     boost::uuids::uuid uuid = generator();
     stringstream ss;
@@ -112,7 +119,9 @@ string MainWindow::saveImageOCV(Mat img){
     imwrite(img_path.string(), img);
     return img_path.string();
 }
+*/
 
+/*
 void MainWindow::on_pushButton_3_clicked()
 {
     const QPixmap* pixmap1 = ui->label_1->pixmap();
@@ -164,10 +173,24 @@ void MainWindow::on_pushButton_3_clicked()
         ui->verification_result->setText(QString("diff"));
     }
 }
+*/
+
+void MainWindow::on_socket_result(const string &result) {
+    this->lastSocketResult = result;
+    this->hasSocketResult = true;
+}
 
 void MainWindow::openCamera()
 {
     capture = cv::VideoCapture(0);
+
+    if (socketThread == Q_NULLPTR) {
+        socketThread = new SocketThread();
+    }
+    socketThread->init("", std::bind(&MainWindow::on_socket_result, this, std::placeholders::_1));
+    this->hasSocketResult = false;
+    this->lastSocketResult = "";
+    socketThread->start();
 
     timer->start(33);
 }
@@ -178,6 +201,27 @@ void MainWindow::readFrame()
 {
     //捕获摄像头一帧图像
     capture >> cvframe;
+    if (this->hasSocketResult) {
+        this->hasSocketResult = false;
+        socketThread->consumeResult();
+        // TODO: consume result
+        const string a = this->lastSocketResult;
+        QLabel *label = this->ui->verification_result;
+        if("acc" == a){
+            label->setText("True");
+            QFont font = label->font();
+            font.setPointSize(72);
+            font.setBold(true);
+            label->setFont(font);
+
+        } else {
+            label->setText("False");
+            QFont font = label->font();
+            font.setPointSize(72);
+            font.setBold(true);
+            label->setFont(font);
+        }
+    }
 
     // detect faces
     vector<cv::Rect> faces; //, filtered_faces;
@@ -196,76 +240,15 @@ void MainWindow::readFrame()
         if( eyes.size() == 2)
         {
             // filtered_faces.push_back(faces[i]);
-            string cam_path = saveImageOCV(cvframe);
-            const QPixmap* pix = ui->label_2->pixmap();
-            string id_path = saveImageQ(pix);
-            json jmsg;
-            jmsg["cam"] = cam_path;
-            jmsg["id"] = id_path;
-            string msg_str = jmsg.dump();
-            zmq::context_t context (1);
-            zmq::socket_t socket (context, ZMQ_REQ);
-            socket.connect ("tcp://localhost:5555");
-            zmq::message_t request(msg_str.size());
-            memcpy(request.data(), msg_str.c_str(), msg_str.size());
-            socket.send(request);
-            zmq::message_t reply;
-            socket.recv(&reply);
-            std::string msg_str2(static_cast<char*>(reply.data()), reply.size());
-            json res = json::parse(msg_str2);
-            bool result = res["acc"];
-            if (result) {
-                ui->verification_result->setText(QString("same"));
-            } else {
-                ui->verification_result->setText(QString("diff"));
+            if(this->ui->label_2->pixmap()){
+                socketThread->trySetData(cvframe, *(ui->label_2->pixmap()));
             }
+
             Point center( faces[i].x + faces[i].width/2, faces[i].y + faces[i].height/2 );
             ellipse( cvframe, center, Size( faces[i].width/2, faces[i].height/2 ), 0, 0, 360, Scalar( 255, 0, 0 ), 2, 8, 0 );
         }
-        //-- Draw the face
-        /*
-        if(!filtered_faces.empty()){
-            cv::Rect roi = filtered_faces[0];
-            Point center( roi.x + roi.width/2, roi.y + roi.height/2 );
-            ellipse( cvframe, center, Size( roi.width/2, roi.height/2 ), 0, 0, 360, Scalar( 255, 0, 0 ), 2, 8, 0 );
-
-            int margin = 45;
-            cv::Rect cropped;
-            Size align(160, 160);
-            cropped.x = min((roi.x - margin/2), 0);
-            cropped.y = min((roi.y - margin/2), 0);
-            cropped.width = min((roi.width + margin/2), cvframe.size[0] - roi.x);
-            cropped.height = min((roi.height + margin/2), cvframe.size[1] - roi.y);
-            Mat crop_face = cvframe(cropped);
-            Mat aligned;
-            cv::resize(crop_face, aligned, align);
-            string cam_path = saveImageOCV(aligned);
-            const QPixmap* pix = ui->label_2->pixmap();
-            string id_path = saveImageQ(pix);
-            json jmsg;
-            jmsg['cam'] = cam_path;
-            jmsg['id'] = id_path;
-            string msg_str = jmsg.dump();
-            zmq::context_t context (1);
-            zmq::socket_t socket (context, ZMQ_REQ);
-            socket.connect ("tcp://localhost:5555");
-            zmq::message_t request(msg_str.size());
-            memcpy(request.data(), msg_str.c_str(), msg_str.size());
-            socket.send(request);
-            zmq::message_t reply;
-            socket.recv(&reply);
-            std::string msg_str2(static_cast<char*>(reply.data()), reply.size());
-            json res = json::parse(msg_str2);
-            bool result = res["acc"];
-            if (result) {
-                ui->verification_result->setText(QString("same"));
-            } else {
-                ui->verification_result->setText(QString("diff"));
-            }
-        }
-        */
     }
-
+    //updateLabel();
     //颜色通道转换
     cv::cvtColor(cvframe, cvframe, CV_BGR2RGB);
 
@@ -287,6 +270,9 @@ void MainWindow::takingPictures()
 void MainWindow::closeCamera()
 {
     timer->stop();
+    socketThread->stopLoop();
+    socketThread->wait();
+    socketThread = Q_NULLPTR;
 
     capture.release();
 }

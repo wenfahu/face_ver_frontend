@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>938</width>
-    <height>778</height>
+    <width>927</width>
+    <height>699</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,50 +40,24 @@
      <string>TextLabel</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>550</y>
-      <width>111</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>choose picture</string>
-    </property>
-   </widget>
    <widget class="QPushButton" name="pushButton_2">
     <property name="geometry">
      <rect>
-      <x>480</x>
-      <y>550</y>
+      <x>610</x>
+      <y>490</y>
       <width>111</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
      <string>choose picture</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_3">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>600</y>
-      <width>111</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>verify</string>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_4">
     <property name="geometry">
      <rect>
-      <x>140</x>
-      <y>550</y>
+      <x>150</x>
+      <y>490</y>
       <width>111</width>
       <height>23</height>
      </rect>
@@ -92,30 +66,17 @@
      <string>打开摄像头</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_5">
-    <property name="geometry">
-     <rect>
-      <x>260</x>
-      <y>550</y>
-      <width>111</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>拍照</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="verification_result">
     <property name="geometry">
      <rect>
       <x>170</x>
-      <y>610</y>
-      <width>59</width>
-      <height>14</height>
+      <y>530</y>
+      <width>461</width>
+      <height>111</height>
      </rect>
     </property>
     <property name="text">
-     <string>None</string>
+     <string/>
     </property>
    </widget>
   </widget>
@@ -124,7 +85,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>938</width>
+     <width>927</width>
      <height>19</height>
     </rect>
    </property>

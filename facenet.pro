@@ -14,9 +14,11 @@ QMAKE_CC = /usr/local/bin/gcc
 QMAKE_CXX = /usr/local/bin/g++
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    socketthread.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    socketthread.h
 
 FORMS    += mainwindow.ui
 INCLUDEPATH += /usr/local/include/opencv \
@@ -25,4 +27,4 @@ INCLUDEPATH += /usr/local/include/opencv \
 
 
 LIBS +=  -L/usr/local/lib/ -lopencv_core -lopencv_imgcodecs -lopencv_highgui -lopencv_imgproc -lopencv_videoio -lzmq \
- -lboost_filesystem -lboost_system -lopencv_objdetect
+  -lopencv_objdetect
